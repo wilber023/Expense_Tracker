@@ -1,0 +1,9 @@
+package com.example.expensetracker.src.register.domain.useCase
+
+import com.example.expensetracker.src.register.domain.repository.RegisterRepository
+
+class CreateUserUseCase(private val repository: RegisterRepository) {
+    suspend operator fun invoke(username: String, pin: String) {
+        repository.registerUser(username, pin)
+    }
+}
