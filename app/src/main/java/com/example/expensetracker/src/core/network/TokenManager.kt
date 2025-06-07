@@ -22,11 +22,6 @@ object TokenManager {
         token = null
     }
 
-    fun hasToken(): Boolean {
-        val hasToken = token != null && token!!.isNotEmpty()
-        Log.d("TokenManager", "¿Tiene token válido?: $hasToken")
-        return hasToken
-    }
 
     private fun isValidJWT(token: String): Boolean {
         return token.split(".").size == 3

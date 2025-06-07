@@ -27,7 +27,7 @@ class ExpenseFetch(private val api: ExpenseApi = NetworkModule.expenseApi) {
             )
 
             Log.d("ExpenseFetch", "Enviando request: $request")
-            val response = api.addExpense("Bearer $token", request)
+            val response = api.addExpense(request)
 
             when {
                 response.isSuccessful -> {
@@ -66,7 +66,7 @@ class ExpenseFetch(private val api: ExpenseApi = NetworkModule.expenseApi) {
 
             Log.d("ExpenseFetch", "Iniciando getAllExpenses con token: ${token.take(10)}...")
 
-            val response = api.getAllExpenses("Bearer $token")
+            val response = api.getAllExpenses()
 
             Log.d("ExpenseFetch", "Response code: ${response.code()}")
 
@@ -127,7 +127,7 @@ class ExpenseFetch(private val api: ExpenseApi = NetworkModule.expenseApi) {
             )
 
             Log.d("ExpenseFetch", "Actualizando gasto con ID: $id, request: $request")
-            val response = api.updateExpense("Bearer $token", id, request)
+            val response = api.updateExpense(id, request)
 
             when {
                 response.isSuccessful -> {
@@ -165,7 +165,7 @@ class ExpenseFetch(private val api: ExpenseApi = NetworkModule.expenseApi) {
             }
 
             Log.d("ExpenseFetch", "Eliminando gasto con ID: $id")
-            val response = api.deleteExpense("Bearer $token", id)
+            val response = api.deleteExpense(id)
 
             when {
                 response.isSuccessful -> {

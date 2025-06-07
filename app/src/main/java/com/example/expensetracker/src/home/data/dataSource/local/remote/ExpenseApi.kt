@@ -6,28 +6,24 @@ import retrofit2.http.*
 interface ExpenseApi {
     @POST("api/expenses")
     suspend fun addExpense(
-        @Header("Authorization") authorization: String,
         @Body request: ExpenseRequest
     ): Response<ExpenseResponse>
 
     @GET("api/expenses")
-    suspend fun getAllExpenses(
-        @Header("Authorization") authorization: String
-    ): Response<ExpenseListResponse>
+    suspend fun getAllExpenses(): Response<ExpenseListResponse>
 
     @PUT("api/expenses/{id}")
     suspend fun updateExpense(
-        @Header("Authorization") authorization: String,
         @Path("id") id: String,
         @Body request: ExpenseRequest
     ): Response<ExpenseResponse>
 
     @DELETE("api/expenses/{id}")
     suspend fun deleteExpense(
-        @Header("Authorization") authorization: String,
         @Path("id") id: String
     ): Response<DeleteExpenseResponse>
 }
+
 
 data class ExpenseRequest(
     val category: String,
