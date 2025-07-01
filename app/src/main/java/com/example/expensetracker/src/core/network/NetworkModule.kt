@@ -1,5 +1,6 @@
 package com.example.expensetracker.src.core.network
 
+import android.content.Context
 import android.util.Log
 import com.example.expensetracker.src.home.data.dataSource.local.remote.ExpenseApi
 import com.example.expensetracker.src.login.data.dataSource.local.remote.LoginApi
@@ -12,7 +13,25 @@ import java.util.concurrent.TimeUnit
 
 object NetworkModule {
 
-    private const val BASE_URL = "http://54.86.190.9/"
+    private const val BASE_URL = "http://192.168.1.160:5000/"
+
+    @Volatile
+    private var appContext: Context? = null
+
+    fun setContext(context: Context) {
+        if (appContext == null) {
+            synchronized(this) {
+                if (appContext == null) {
+                    appContext = context.applicationContext
+                    Log.d("NetworkModule", "Contexto establecido para DataStore")
+                }
+            }
+        }
+    }
+
+    fun getContext(): Context? = appContext
+
+
     private val loggingInterceptor = HttpLoggingInterceptor { message ->
         Log.d("NetworkModule", message)
     }.apply {
@@ -21,7 +40,7 @@ object NetworkModule {
 
     private val okHttpClient by lazy {
         OkHttpClient.Builder()
-            .addInterceptor(AuthInterceptor())
+            .addInterceptor(AuthInterceptor(appContext))
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)

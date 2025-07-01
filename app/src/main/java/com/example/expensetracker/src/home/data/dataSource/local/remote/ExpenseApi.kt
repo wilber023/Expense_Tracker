@@ -1,21 +1,39 @@
 package com.example.expensetracker.src.home.data.dataSource.local.remote
 
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.*
 
 interface ExpenseApi {
+    @Multipart
     @POST("api/expenses")
     suspend fun addExpense(
-        @Body request: ExpenseRequest
+        @Part("category") category: RequestBody,
+        @Part("description") description: RequestBody,
+        @Part("amount") amount: RequestBody,
+        @Part("date") date: RequestBody,
+        @Part image: MultipartBody.Part?,
+        @Part("latitude") latitude: RequestBody?,
+        @Part("longitude") longitude: RequestBody?,
+        @Part("address") address: RequestBody?
     ): Response<ExpenseResponse>
 
     @GET("api/expenses")
     suspend fun getAllExpenses(): Response<ExpenseListResponse>
 
+    @Multipart
     @PUT("api/expenses/{id}")
     suspend fun updateExpense(
         @Path("id") id: String,
-        @Body request: ExpenseRequest
+        @Part("category") category: RequestBody,
+        @Part("description") description: RequestBody,
+        @Part("amount") amount: RequestBody,
+        @Part("date") date: RequestBody,
+        @Part image: MultipartBody.Part?,
+        @Part("latitude") latitude: RequestBody?,
+        @Part("longitude") longitude: RequestBody?,
+        @Part("address") address: RequestBody?
     ): Response<ExpenseResponse>
 
     @DELETE("api/expenses/{id}")
@@ -24,12 +42,12 @@ interface ExpenseApi {
     ): Response<DeleteExpenseResponse>
 }
 
-
 data class ExpenseRequest(
     val category: String,
     val description: String,
     val amount: Double,
-    val date: String
+    val date: String,
+    val image: String? = null
 )
 
 data class ExpenseResponse(
@@ -55,6 +73,10 @@ data class ExpenseData(
     val description: String,
     val amount: String,
     val date: String,
+    val image_url: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val address: String? = null,
     val created_at: String? = null,
     val updated_at: String? = null
 )

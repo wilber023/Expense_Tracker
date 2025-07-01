@@ -1,15 +1,18 @@
 package com.example.expensetracker.src.home.presentation.view
-
+import com.example.expensetracker.src.home.presentation.view.components.ExpenseItem
+import com.example.expensetracker.src.home.presentation.view.components.ModernExpenseDialog
+import android.Manifest
+import android.app.Activity
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,18 +21,108 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.app.Activity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.expensetracker.src.core.network.NetworkModule
 import com.example.expensetracker.src.home.di.DependencyContainer
-import com.example.expensetracker.src.home.domain.repository.Expense
 import com.example.expensetracker.src.home.presentation.viewModel.HomeViewModel
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = viewModel(factory = DependencyContainer.homeViewModelFactory)
+    onLogout: () -> Unit = {}
 ) {
-    var showExitDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    var showExitDialog by remember { mutableStateOf(false) }
+    var showPermissionDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        NetworkModule.setContext(context)
+    }
+
+    val viewModel: HomeViewModel = viewModel(
+        factory = try {
+            DependencyContainer.getHomeViewModelFactory(context)
+        } catch (e: Exception) {
+            DependencyContainer.homeViewModelFactory
+        }
+    )
+
+
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        viewModel.updateImageUri(uri)
+    }
+
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val coarseLocationGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+
+        if (fineLocationGranted || coarseLocationGranted) {
+            viewModel.getCurrentLocation()
+        }
+    }
+
+
+    fun bitmapToUri(bitmap: Bitmap): Uri? {
+        return try {
+            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val filename = "camera_photo_$timeStamp.jpg"
+            val file = File(context.cacheDir, filename)
+
+            val outputStream = FileOutputStream(file)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+            outputStream.flush()
+            outputStream.close()
+
+            Uri.fromFile(file)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        bitmap?.let {
+            val uri = bitmapToUri(it)
+            viewModel.updateImageUri(uri)
+        }
+    }
+
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            takePictureLauncher.launch(null)
+        } else {
+            showPermissionDialog = true
+        }
+    }
+
+
+    fun checkAndRequestCameraPermission() {
+        when {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                takePictureLauncher.launch(null)
+            }
+            else -> {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -53,7 +146,7 @@ fun HomeScreen(
             FloatingActionButton(
                 onClick = { viewModel.showAddDialog() },
                 modifier = Modifier
-                    .padding(top=50.dp)
+                    .padding(top = 50.dp)
                     .size(60.dp)
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "Add Expense")
@@ -62,7 +155,7 @@ fun HomeScreen(
             FloatingActionButton(
                 onClick = { showExitDialog = true },
                 modifier = Modifier
-                    .padding(top=50.dp)
+                    .padding(top = 50.dp)
                     .size(60.dp),
                 containerColor = MaterialTheme.colorScheme.error
             ) {
@@ -75,6 +168,7 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(20.dp))
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(5.dp),
@@ -89,48 +183,54 @@ fun HomeScreen(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                if (viewModel.isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-                else if (viewModel.fetchError != null) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Error: ${viewModel.fetchError}",
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.padding(8.dp)
-                        )
-                        Button(
-                            onClick = { viewModel.refreshExpenses() },
-                            modifier = Modifier.padding(top = 8.dp)
+
+                when {
+                    viewModel.isLoading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("Reintentar")
+                            CircularProgressIndicator()
                         }
                     }
-                }
-                else if (viewModel.expenses.isEmpty()) {
-                    Text(
-                        "No hay gastos registrados",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-                else {
-                    Column {
-                        viewModel.expenses.forEach { expense ->
-                            ExpenseItem(
-                                expense = expense,
-                                onEditClick = { viewModel.showEditDialog(expense) },
-                                onDeleteClick = { viewModel.showDeleteDialog(expense) }
+
+                    viewModel.fetchError != null -> {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Error: ${viewModel.fetchError}",
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(8.dp)
                             )
+                            Button(
+                                onClick = { viewModel.refreshExpenses() },
+                                modifier = Modifier.padding(top = 8.dp)
+                            ) {
+                                Text("Reintentar")
+                            }
+                        }
+                    }
+
+                    viewModel.expenses.isEmpty() -> {
+                        Text(
+                            "No hay gastos registrados",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+
+                    else -> {
+                        Column {
+                            viewModel.expenses.forEach { expense ->
+                                ExpenseItem(
+                                    expense = expense,
+                                    onEditClick = { viewModel.showEditDialog(expense) },
+                                    onDeleteClick = { viewModel.showDeleteDialog(expense) }
+                                )
+                            }
                         }
                     }
                 }
@@ -145,40 +245,65 @@ fun HomeScreen(
             modifier = Modifier.padding(top = 16.dp)
         )
     }
+
+
     if (viewModel.showAddDialog) {
-        ExpenseDialog(
+        ModernExpenseDialog(
             title = "Agregar gasto",
             category = viewModel.category,
             description = viewModel.description,
             amount = viewModel.amount,
             date = viewModel.date,
+            imageUri = viewModel.imageUri,
+            currentLocation = viewModel.currentLocation,
+            useCurrentLocation = viewModel.useCurrentLocation,
+            isLoadingLocation = viewModel.isLoadingLocation,
+            locationError = viewModel.locationError,
             errorMessage = viewModel.errorMessage,
             isLoading = viewModel.isLoading,
             onCategoryChange = { viewModel.updateCategory(it) },
             onDescriptionChange = { viewModel.updateDescription(it) },
             onAmountChange = { viewModel.updateAmount(it) },
             onDateChange = { viewModel.updateDate(it) },
+            onPickFromGallery = { pickImageLauncher.launch("image/*") },
+            onTakePhoto = { checkAndRequestCameraPermission() },
+            onRemoveImage = { viewModel.updateImageUri(null) },
+            onToggleLocation = { viewModel.toggleLocationUsage() },
+            onRetryLocation = { viewModel.retryLocation() },
             onConfirm = { viewModel.onAddExpenseClick() },
             onDismiss = { viewModel.hideAddDialog() }
         )
     }
+
     if (viewModel.showEditDialog) {
-        ExpenseDialog(
+        ModernExpenseDialog(
             title = "Editar gasto",
             category = viewModel.category,
             description = viewModel.description,
             amount = viewModel.amount,
             date = viewModel.date,
+            imageUri = viewModel.imageUri,
+            existingImageUrl = viewModel.getCurrentImageUrl(),
+            currentLocation = viewModel.currentLocation,
+            useCurrentLocation = viewModel.useCurrentLocation,
+            isLoadingLocation = viewModel.isLoadingLocation,
+            locationError = viewModel.locationError,
             errorMessage = viewModel.errorMessage,
             isLoading = viewModel.isLoading,
             onCategoryChange = { viewModel.updateCategory(it) },
             onDescriptionChange = { viewModel.updateDescription(it) },
             onAmountChange = { viewModel.updateAmount(it) },
             onDateChange = { viewModel.updateDate(it) },
+            onPickFromGallery = { pickImageLauncher.launch("image/*") },
+            onTakePhoto = { checkAndRequestCameraPermission() },
+            onRemoveImage = { viewModel.removeCurrentImage() },
+            onToggleLocation = { viewModel.toggleLocationUsage() },
+            onRetryLocation = { viewModel.retryLocation() },
             onConfirm = { viewModel.onUpdateExpenseClick() },
             onDismiss = { viewModel.hideEditDialog() }
         )
     }
+
     if (viewModel.showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.hideDeleteDialog() },
@@ -240,162 +365,55 @@ fun HomeScreen(
             }
         )
     }
-}
 
-@Composable
-fun ExpenseItem(
-    expense: Expense,
-    onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f)
+
+    if (showPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog = false },
+            title = { Text("Permiso de cámara requerido") },
+            text = {
+                Text("Esta aplicación necesita acceso a la cámara para tomar fotos. Por favor, habilita el permiso en la configuración de la aplicación.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showPermissionDialog = false }
                 ) {
-                    Text("Categoría: ${expense.category}", fontWeight = FontWeight.Bold)
-                    Text("Descripción: ${expense.description}")
-                    Text("Monto: $${expense.amount}")
-                    Text("Fecha: ${expense.date}")
-                }
-
-                Row {
-                    IconButton(onClick = onEditClick) {
-                        Icon(
-                            Icons.Filled.Edit,
-                            contentDescription = "Editar gasto",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    IconButton(onClick = onDeleteClick) {
-                        Icon(
-                            Icons.Filled.Delete,
-                            contentDescription = "Eliminar gasto",
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
+                    Text("Entendido")
                 }
             }
-        }
+        )
     }
-}
 
-@Composable
-fun ExpenseDialog(
-    title: String,
-    category: String,
-    description: String,
-    amount: String,
-    date: String,
-    errorMessage: String?,
-    isLoading: Boolean,
-    onCategoryChange: (String) -> Unit,
-    onDescriptionChange: (String) -> Unit,
-    onAmountChange: (String) -> Unit,
-    onDateChange: (String) -> Unit,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column {
-                errorMessage?.let { error ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(8.dp),
-                            fontSize = 14.sp
+
+    if (viewModel.showLocationPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.hideLocationPermissionDialog() },
+            title = { Text("Permiso de ubicación requerido") },
+            text = {
+                Text("Esta aplicación necesita acceso a la ubicación para agregar la ubicación de tus gastos. Por favor, habilita el permiso de ubicación.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.hideLocationPermissionDialog()
+                        locationPermissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
                         )
                     }
+                ) {
+                    Text("Conceder permiso")
                 }
-
-                OutlinedTextField(
-                    value = category,
-                    onValueChange = onCategoryChange,
-                    label = { Text("Categoría") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Filled.ShoppingCart, contentDescription = null) },
-                    enabled = !isLoading
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = onDescriptionChange,
-                    label = { Text("Descripción") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
-                    enabled = !isLoading
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = onAmountChange,
-                    label = { Text("Monto") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) },
-                    enabled = !isLoading
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = date,
-                    onValueChange = onDateChange,
-                    label = { Text("Fecha") },
-                    modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Filled.DateRange, contentDescription = null) },
-                    enabled = !isLoading
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                enabled = !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                } else {
-                    Text(if (title.contains("Agregar")) "Agregar gasto" else "Actualizar gasto")
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { viewModel.hideLocationPermissionDialog() }
+                ) {
+                    Text("Cancelar")
                 }
             }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                enabled = !isLoading
-            ) {
-                Text("Cancelar")
-            }
-        }
-    )
+        )
+    }
 }

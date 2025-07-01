@@ -3,7 +3,6 @@ package com.example.expensetracker.src.login.presentation
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.expensetracker.src.core.network.TokenManager
 import com.example.expensetracker.src.login.domain.UseCase.ValidationUser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +34,6 @@ class LoginViewModel(private val validationUser: ValidationUser) : ViewModel() {
     }
 
     fun setPin(pin: String) {
-
         val numericPin = pin.filter { it.isDigit() }.take(6)
         _pin.value = numericPin
 
@@ -80,13 +78,7 @@ class LoginViewModel(private val validationUser: ValidationUser) : ViewModel() {
 
                 if (result.success) {
                     Log.d("LoginViewModel", "Login exitoso")
-
-
-                    result.token?.let { token ->
-                        TokenManager.setToken(token)
-                        Log.d("LoginViewModel", "Token guardado: $token")
-                    } ?: Log.w("LoginViewModel", "No se recibió token del servidor")
-
+                    // El token ya se guarda automáticamente en el repository
                     _errorMessage.value = null
                     _loginSuccess.value = true
                 } else {

@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -20,10 +21,14 @@ import com.example.expensetracker.src.login.di.LoginDependencies
 
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel = viewModel { LoginDependencies.provideLoginViewModel() },
     onLoginSuccess: () -> Unit = {},
     onRegisterClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val viewModel: LoginViewModel = viewModel {
+        LoginDependencies.provideLoginViewModel(context)
+    }
+
     val username by viewModel.username.collectAsState()
     val pin by viewModel.pin.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()

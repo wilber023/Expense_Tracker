@@ -5,5 +5,9 @@ data class Expense(
     val category: String,
     val description: String,
     val amount: Double,
-    val date: String
+    val date: String,
+    val imageUrl: String? = null,
+    val latitude: Double? = null,    // Agregar
+    val longitude: Double? = null,   // Agregar
+    val address: String? = null      // Agregar
 )

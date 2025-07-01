@@ -6,12 +6,14 @@ import com.example.expensetracker.src.home.domain.UseCase.AddExpenseUseCase
 import com.example.expensetracker.src.home.domain.UseCase.GetExpenseUseCase
 import com.example.expensetracker.src.home.domain.UseCase.UpdateExpenseUseCase
 import com.example.expensetracker.src.home.domain.UseCase.DeleteExpenseUseCase
+import com.example.expensetracker.src.home.domain.UseCase.GetLocationUseCase
 
 class HomeViewModelFactory(
     private val addExpenseUseCase: AddExpenseUseCase,
     private val getExpenseUseCase: GetExpenseUseCase,
     private val updateExpenseUseCase: UpdateExpenseUseCase,
-    private val deleteExpenseUseCase: DeleteExpenseUseCase
+    private val deleteExpenseUseCase: DeleteExpenseUseCase,
+    private val getLocationUseCase: GetLocationUseCase
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -20,7 +22,8 @@ class HomeViewModelFactory(
             addExpenseUseCase,
             getExpenseUseCase,
             updateExpenseUseCase,
-            deleteExpenseUseCase
+            deleteExpenseUseCase,
+            getLocationUseCase
         ) as T
     }
 }
