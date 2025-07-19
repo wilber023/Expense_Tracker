@@ -12,8 +12,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.expensetracker.src.core.navigation.NavigationWrapper
-import com.example.expensetracker.src.home.presentation.view.HomeScreen
-import com.example.expensetracker.src.login.presentation.LoginScreen
+
+import com.example.expensetracker.src.feature.login.presentation.LoginScreen
 
 
 class MainActivity : ComponentActivity() {

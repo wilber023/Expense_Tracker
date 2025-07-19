@@ -4,10 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.expensetracker.src.home.presentation.view.HomeScreen
-import com.example.expensetracker.src.login.presentation.LoginScreen
-import com.example.expensetracker.src.register.presentation.view.RegisterScreen
-import com.example.expensetracker.src.register.di.DependencyContainerRegister
+import com.example.expensetracker.src.feature.home.presentation.view.HomeScreen
+
+import com.example.expensetracker.src.feature.login.presentation.LoginScreen
+import com.example.expensetracker.src.feature.register.presentation.view.RegisterScreen
+import com.example.expensetracker.src.feature.register.di.DependencyContainerRegister
 
 @Composable
 fun NavigationWrapper() {

@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.jetbrainsKotlinSerialization)
+    id("org.jetbrains.kotlin.kapt")
+
 }
 
 android {
@@ -41,6 +43,14 @@ android {
 }
 
 dependencies {
+
+    kapt(libs.hilt.compiler)
+    kapt(libs.room.compiler)
+    implementation(libs.hilt.android)
+
+    implementation(libs.hilt.navigation.compose)
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
     implementation(libs.google.play.services.location)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.fragment.ktx)

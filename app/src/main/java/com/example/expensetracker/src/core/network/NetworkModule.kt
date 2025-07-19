@@ -2,8 +2,8 @@ package com.example.expensetracker.src.core.network
 
 import android.content.Context
 import android.util.Log
-import com.example.expensetracker.src.home.data.dataSource.local.remote.ExpenseApi
-import com.example.expensetracker.src.login.data.dataSource.local.remote.LoginApi
+import com.example.expensetracker.src.feature.home.data.dataSource.local.remote.ExpenseApi
+import com.example.expensetracker.src.feature.login.data.dataSource.local.remote.LoginApi
 import com.example.expensetracker.src.register.data.dataSource.remote.RegisterApi
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit
 
 object NetworkModule {
 
-    private const val BASE_URL = "http://192.168.1.160:5000/"
+    private const val BASE_URL = "http://23.23.242.170/"
 
     @Volatile
     private var appContext: Context? = null
@@ -61,8 +61,8 @@ object NetworkModule {
         retrofit.create(LoginApi::class.java)
     }
 
-    val expenseApi: ExpenseApi by lazy {
-        retrofit.create(ExpenseApi::class.java)
+    val expenseApi: com.example.expensetracker.src.feature.home.data.dataSource.local.remote.ExpenseApi by lazy {
+        retrofit.create(com.example.expensetracker.src.feature.home.data.dataSource.local.remote.ExpenseApi::class.java)
     }
 
     val registerApi: RegisterApi by lazy {
