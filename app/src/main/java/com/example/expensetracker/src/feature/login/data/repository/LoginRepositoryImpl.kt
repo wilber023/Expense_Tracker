@@ -19,42 +19,42 @@ class LoginRepositoryImpl(
 
     override suspend fun validateUser(username: String, pin: String): LoginResult {
         return try {
-            Log.d("LoginRepository", "  Validando usuario: '$username'")
+            Log.d("LoginRepository", "🔐 Validando usuario: '$username'")
 
             val response = loginFetch.login(username, pin)
 
             if (response.isSuccess) {
                 val loginResponse = response.getOrNull()
                 if (loginResponse?.success == true) {
-                    Log.d("LoginRepository", "  Login exitoso")
+                    Log.d("LoginRepository", "✅ Login exitoso - Rol: ${loginResponse.userRole}")
 
-
+                    // Guardar token si existe
                     loginResponse.token?.let { token ->
-
                         TokenManager.setToken(token)
-                        Log.d("LoginRepository", "  Token guardado en TokenManager")
-
+                        Log.d("LoginRepository", "🔑 Token guardado en TokenManager")
 
                         if (dataStoreToken != null) {
                             try {
                                 dataStoreToken!!.saveToken(token)
-                                Log.d("LoginRepository", "  Token guardado en DataStore")
+                                Log.d("LoginRepository", "💾 Token guardado en DataStore")
                             } catch (e: Exception) {
-                                Log.w("LoginRepository", "  Error guardando en DataStore: ${e.message}")
-
+                                Log.w("LoginRepository", "⚠️ Error guardando en DataStore: ${e.message}")
                             }
                         } else {
-                            Log.d("LoginRepository", "  DataStore no disponible, usando solo TokenManager")
+                            Log.d("LoginRepository", "📱 DataStore no disponible, usando solo TokenManager")
                         }
                     }
 
+                    // Retornar resultado con TODOS los datos incluyendo el rol
                     LoginResult(
                         success = true,
-                        token = loginResponse.token,
-                        message = loginResponse.message ?: "Login exitoso"
+                        message = loginResponse.message ?: "Login exitoso",
+                        userRole = loginResponse.userRole, // IMPORTANTE: Incluir el rol
+                        userId = loginResponse.userId,
+                        token = loginResponse.token
                     )
                 } else {
-                    Log.e("LoginRepository", " Credenciales incorrectas: ${loginResponse?.message}")
+                    Log.e("LoginRepository", "❌ Credenciales incorrectas: ${loginResponse?.message}")
                     LoginResult(
                         success = false,
                         message = loginResponse?.message ?: "Credenciales incorrectas"
@@ -62,14 +62,14 @@ class LoginRepositoryImpl(
                 }
             } else {
                 val error = response.exceptionOrNull()
-                Log.e("LoginRepository", "  Error de conexión: ${error?.message}")
+                Log.e("LoginRepository", "🌐 Error de conexión: ${error?.message}")
                 LoginResult(
                     success = false,
                     message = "Error de conexión"
                 )
             }
         } catch (e: Exception) {
-            Log.e("LoginRepository", "  Excepción en validateUser: ${e.message}", e)
+            Log.e("LoginRepository", "💥 Excepción en validateUser: ${e.message}", e)
             LoginResult(
                 success = false,
                 message = e.message ?: "Error desconocido"
@@ -84,6 +84,6 @@ class LoginRepositoryImpl(
     override suspend fun clearToken() {
         TokenManager.clearToken()
         dataStoreToken?.clearToken()
-        Log.d("LoginRepository", " Tokens eliminados")
+        Log.d("LoginRepository", "🗑️ Tokens eliminados")
     }
 }

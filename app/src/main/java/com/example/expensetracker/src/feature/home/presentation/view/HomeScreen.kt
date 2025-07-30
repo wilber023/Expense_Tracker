@@ -2,6 +2,10 @@ package com.example.expensetracker.src.feature.home.presentation.view
 import com.example.expensetracker.src.feature.home.di.DependencyContainer
 import com.example.expensetracker.src.feature.home.presentation.viewModel.HomeViewModel
 
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
@@ -9,15 +13,22 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,22 +43,49 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
+
 @Composable
 fun HomeScreen(
-    onLogout: () -> Unit = {}
 ) {
-
     val context = LocalContext.current
-    var showExitDialog by remember { mutableStateOf(false) }
-    var showPermissionDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        NetworkModule.setContext(context)
-    }
 
     val viewModel: HomeViewModel = viewModel(
         factory = DependencyContainer.getHomeViewModelFactory(context)
     )
+
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val saveStatusMessage = viewModel.saveStatusMessage
+
+    var showExitDialog by remember { mutableStateOf(false) }
+    var showPermissionDialog by remember { mutableStateOf(false) }
+
+    val fabScale by animateFloatAsState(
+        targetValue = if (showExitDialog) 0.9f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    )
+
+    LaunchedEffect(Unit) {
+        NetworkModule.setContext(context)
+
+        DependencyContainer.getSyncService(context).startObservingSync { count ->
+            if (count > 0) {
+                snackbarHostState.showSnackbar("✅ $count gastos sincronizados con el servidor")
+            }
+        }
+    }
+
+    LaunchedEffect(saveStatusMessage) {
+        saveStatusMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearSaveStatusMessage()
+        }
+    }
+
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -116,128 +154,315 @@ fun HomeScreen(
         }
     }
 
-    Column(
+    // Executive gradient background
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(30.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-
-        Text(
-            text = "Expense Tracker Student",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .padding(bottom = 32.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            FloatingActionButton(
-                onClick = { viewModel.showAddDialog() },
-                modifier = Modifier
-                    .padding(top = 50.dp)
-                    .size(60.dp)
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Expense")
-            }
-
-            FloatingActionButton(
-                onClick = { showExitDialog = true },
-                modifier = Modifier
-                    .padding(top = 50.dp)
-                    .size(60.dp),
-                containerColor = MaterialTheme.colorScheme.error
-            ) {
-                Icon(
-                    Icons.Filled.ExitToApp,
-                    contentDescription = "Salir de la aplicación",
-                    tint = MaterialTheme.colorScheme.onError
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0D1117),  // Dark navy
+                        Color(0xFF161B22),  // Slightly lighter navy
+                        Color(0xFF21262D)   // Medium dark
+                    )
                 )
-            }
+            )
+
+    ) {
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp)
+        ) { data ->
+            Snackbar(
+                snackbarData = data,
+                containerColor = Color(0xFF10B981),
+                contentColor = Color.White
+            )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(5.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier.padding(15.dp)
+            // Modern Header with glassmorphism
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White.copy(alpha = 0.08f)
+                ),
+                shape = RoundedCornerShape(28.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Text(
-                    text = "Historial de gastos",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                when {
-                    viewModel.isLoading -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-
-                    viewModel.fetchError != null -> {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "Error: ${viewModel.fetchError}",
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(8.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFF6366F1).copy(alpha = 0.3f),
+                                    Color(0xFF8B5CF6).copy(alpha = 0.3f),
+                                    Color(0xFFEC4899).copy(alpha = 0.3f)
+                                )
                             )
-                            Button(
-                                onClick = { viewModel.refreshExpenses() },
-                                modifier = Modifier.padding(top = 8.dp)
-                            ) {
-                                Text("Reintentar")
-                            }
-                        }
-                    }
-
-                    viewModel.expenses.isEmpty() -> {
+                        )
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.AccountBalanceWallet,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
                         Text(
-                            "No hay gastos registrados",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            text = "Executive Tracker",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            letterSpacing = 1.2.sp
                         )
                     }
+                }
+            }
 
-                    else -> {
-                        Column {
-                            viewModel.expenses.forEach { expense ->
-                                ExpenseItem(
-                                    expense = expense,
-                                    onEditClick = { viewModel.showEditDialog(expense) },
-                                    onDeleteClick = { viewModel.showDeleteDialog(expense) }
-                                )
+            // Modern Action Buttons
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Add Expense FAB
+                ExtendedFloatingActionButton(
+                    onClick = { viewModel.showAddDialog() },
+                    modifier = Modifier
+                        .scale(fabScale)
+                        .height(56.dp),
+                    containerColor = Color(0xFF6366F1),
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(28.dp),
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 12.dp,
+                        pressedElevation = 16.dp
+                    )
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = "Add Expense",
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Nueva Transacción",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp
+                    )
+                }
+
+                // Exit Button
+                FloatingActionButton(
+                    onClick = { showExitDialog = true },
+                    modifier = Modifier
+                        .scale(fabScale)
+                        .size(56.dp),
+                    containerColor = Color(0xFFEF4444),
+                    contentColor = Color.White,
+                    shape = CircleShape,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 12.dp,
+                        pressedElevation = 16.dp
+                    )
+                ) {
+                    Icon(
+                        Icons.Filled.ExitToApp,
+                        contentDescription = "Salir",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            // Executive Expense History Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White.copy(alpha = 0.06f)
+                ),
+                shape = RoundedCornerShape(32.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    // Header with modern typography
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Historial Ejecutivo",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            letterSpacing = 0.5.sp
+                        )
+
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFF6366F1).copy(alpha = 0.2f)
+                            ),
+                            shape = RoundedCornerShape(20.dp)
+                        ) {
+                            Text(
+                                text = "${viewModel.expenses.size} items",
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                color = Color(0xFF6366F1),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    // Content Area
+                    when {
+                        viewModel.isLoading -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = Color(0xFF6366F1),
+                                        strokeWidth = 3.dp,
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                    Text(
+                                        "Cargando datos...",
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        viewModel.fetchError != null -> {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFFEF4444).copy(alpha = 0.1f)
+                                ),
+                                shape = RoundedCornerShape(20.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(20.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Warning,
+                                        contentDescription = null,
+                                        tint = Color(0xFFEF4444),
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                    Text(
+                                        text = "Error: ${viewModel.fetchError}",
+                                        color = Color(0xFFEF4444),
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 14.sp
+                                    )
+                                    OutlinedButton(
+                                        onClick = { viewModel.refreshExpenses() },
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = Color(0xFFEF4444)
+                                        ),
+                                        shape = RoundedCornerShape(16.dp)
+                                    ) {
+                                        Text("Reintentar")
+                                    }
+                                }
+                            }
+                        }
+
+                        viewModel.expenses.isEmpty() -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Receipt,
+                                        contentDescription = null,
+                                        tint = Color.White.copy(alpha = 0.3f),
+                                        modifier = Modifier.size(64.dp)
+                                    )
+                                    Text(
+                                        "No hay transacciones",
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        "Agrega tu primera transacción",
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        else -> {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp)
+                            ) {
+                                items(viewModel.expenses) { expense ->
+                                    ExpenseItem(
+                                        expense = expense,
+                                        onEditClick = { viewModel.showEditDialog(expense) },
+                                        onDeleteClick = { viewModel.showDeleteDialog(expense) }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.weight(1f))
-        Text(
-            text = "Expense Tracker :)",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(top = 16.dp)
-        )
+            // Bottom signature
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Executive Finance Suite™",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Light,
+                color = Color.White.copy(alpha = 0.4f),
+                letterSpacing = 1.sp
+            )
+        }
     }
 
+    // Modern Dialogs
     if (viewModel.showAddDialog) {
         ModernExpenseDialog(
             title = "Agregar gasto",
@@ -261,7 +486,7 @@ fun HomeScreen(
             onRemoveImage = { viewModel.updateImageUri(null) },
             onToggleLocation = { viewModel.toggleLocationUsage() },
             onRetryLocation = { viewModel.retryLocation() },
-            onConfirm = { viewModel.onAddExpenseClick() },
+            onConfirm = { viewModel.onAddExpenseClick(context) },
             onDismiss = { viewModel.hideAddDialog() }
         )
     }
@@ -295,33 +520,65 @@ fun HomeScreen(
         )
     }
 
+    // Executive style dialogs
     if (viewModel.showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.hideDeleteDialog() },
-            title = { Text("Eliminar gasto") },
-            text = { Text("¿Estás seguro de que quieres eliminar este gasto?") },
+            containerColor = Color(0xFF1F2937),
+            shape = RoundedCornerShape(24.dp),
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = null,
+                        tint = Color(0xFFEF4444),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        "Eliminar Transacción",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                Text(
+                    "¿Confirma la eliminación de esta transacción? Esta acción no se puede deshacer.",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 14.sp
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = { viewModel.onDeleteExpenseClick() },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                        containerColor = Color(0xFFEF4444)
                     ),
+                    shape = RoundedCornerShape(16.dp),
                     enabled = !viewModel.isLoading
                 ) {
                     if (viewModel.isLoading) {
                         CircularProgressIndicator(
-                            color = MaterialTheme.colorScheme.onError,
-                            modifier = Modifier.size(16.dp)
+                            color = Color.White,
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Eliminar")
+                        Text("Confirmar", fontWeight = FontWeight.SemiBold)
                     }
                 }
             },
             dismissButton = {
-                TextButton(
+                OutlinedButton(
                     onClick = { viewModel.hideDeleteDialog() },
-                    enabled = !viewModel.isLoading
+                    enabled = !viewModel.isLoading,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.White.copy(alpha = 0.8f)
+                    )
                 ) {
                     Text("Cancelar")
                 }
@@ -332,8 +589,33 @@ fun HomeScreen(
     if (showExitDialog) {
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
-            title = { Text("Salir de la aplicación") },
-            text = { Text("¿Estás seguro de que quieres salir de la aplicación?") },
+            containerColor = Color(0xFF1F2937),
+            shape = RoundedCornerShape(24.dp),
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.ExitToApp,
+                        contentDescription = null,
+                        tint = Color(0xFFEF4444),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        "Salir de la Aplicación",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                Text(
+                    "¿Está seguro que desea cerrar Executive Tracker?",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 14.sp
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -341,15 +623,20 @@ fun HomeScreen(
                         (context as? Activity)?.finish()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                        containerColor = Color(0xFFEF4444)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("Salir")
+                    Text("Salir", fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showExitDialog = false }
+                OutlinedButton(
+                    onClick = { showExitDialog = false },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.White.copy(alpha = 0.8f)
+                    )
                 ) {
                     Text("Cancelar")
                 }
@@ -360,15 +647,42 @@ fun HomeScreen(
     if (showPermissionDialog) {
         AlertDialog(
             onDismissRequest = { showPermissionDialog = false },
-            title = { Text("Permiso de cámara requerido") },
+            containerColor = Color(0xFF1F2937),
+            shape = RoundedCornerShape(24.dp),
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.CameraAlt,
+                        contentDescription = null,
+                        tint = Color(0xFFF59E0B),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        "Permiso de Cámara",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
             text = {
-                Text("Esta aplicación necesita acceso a la cámara para tomar fotos. Por favor, habilita el permiso en la configuración de la aplicación.")
+                Text(
+                    "Se requiere acceso a la cámara para capturar imágenes de sus transacciones. Habilite el permiso en configuración.",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 14.sp
+                )
             },
             confirmButton = {
                 Button(
-                    onClick = { showPermissionDialog = false }
+                    onClick = { showPermissionDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF6366F1)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("Entendido")
+                    Text("Entendido", fontWeight = FontWeight.SemiBold)
                 }
             }
         )
@@ -377,9 +691,32 @@ fun HomeScreen(
     if (viewModel.showLocationPermissionDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.hideLocationPermissionDialog() },
-            title = { Text("Permiso de ubicación requerido") },
+            containerColor = Color(0xFF1F2937),
+            shape = RoundedCornerShape(24.dp),
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.LocationOn,
+                        contentDescription = null,
+                        tint = Color(0xFF10B981),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        "Permiso de Ubicación",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
             text = {
-                Text("Esta aplicación necesita acceso a la ubicación para agregar la ubicación de tus gastos. Por favor, habilita el permiso de ubicación.")
+                Text(
+                    "Active la ubicación para agregar contexto geográfico a sus transacciones ejecutivas.",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 14.sp
+                )
             },
             confirmButton = {
                 Button(
@@ -391,14 +728,22 @@ fun HomeScreen(
                                 Manifest.permission.ACCESS_COARSE_LOCATION
                             )
                         )
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF10B981)
+                    ),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("Conceder permiso")
+                    Text("Conceder Permiso", fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { viewModel.hideLocationPermissionDialog() }
+                OutlinedButton(
+                    onClick = { viewModel.hideLocationPermissionDialog() },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.White.copy(alpha = 0.8f)
+                    )
                 ) {
                     Text("Cancelar")
                 }

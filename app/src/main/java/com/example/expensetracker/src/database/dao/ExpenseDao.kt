@@ -32,4 +32,8 @@ interface ExpenseDao {
 
     @Query("DELETE FROM expenses")
     suspend fun deleteAllExpenses()
+
+    @Query("SELECT * FROM expenses ORDER BY createdAt DESC")
+    suspend fun getAllLocalExpenses(): List<ExpenseEntity>
+
 }

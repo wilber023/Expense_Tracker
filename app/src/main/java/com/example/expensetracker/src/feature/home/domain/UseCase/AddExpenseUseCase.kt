@@ -1,15 +1,17 @@
 package com.example.expensetracker.src.feature.home.domain.UseCase
 
+import android.content.Context
 import android.net.Uri
-import com.example.expensetracker.src.core.hardware.domain.LocationData
-import com.example.expensetracker.src.feature.home.domain.repository.ExpenseRepository
-import com.example.expensetracker.src.feature.home.domain.repository.Expense
 import com.example.expensetracker.src.core.connectivity.ConnectivityObserver
-import com.example.expensetracker.src.core.offline.OfflineBackup  // ← AGREGAR ESTE IMPORT
+import com.example.expensetracker.src.core.hardware.domain.LocationData
+import com.example.expensetracker.src.core.offline.OfflineBackup
+import com.example.expensetracker.src.core.utils.saveImageLocally
+import com.example.expensetracker.src.feature.home.domain.repository.Expense
+import com.example.expensetracker.src.feature.home.domain.repository.ExpenseRepository
+import java.util.UUID
 
 class AddExpenseUseCase(
     private val repository: ExpenseRepository,
-    private val imageProcessingUseCase: ImageProcessingUseCase?,
     private val connectivityObserver: ConnectivityObserver?,
     private val offlineBackup: OfflineBackup?
 ) {
@@ -18,38 +20,37 @@ class AddExpenseUseCase(
         description: String,
         amount: Double,
         date: String,
-        imageUri: Uri? = null,
-        location: LocationData? = null
+        imageUri: Uri?,
+        location: LocationData?,
+        context: Context
     ): Result<String> {
-        val expense = Expense(
-            id = null,
-            category = category,
-            description = description,
-            amount = amount,
-            date = date,
-            imageUrl = null,
-            latitude = location?.latitude,
-            longitude = location?.longitude,
-            address = location?.address
-        )
+        return try {
+            // Guardar imagen localmente (reutilizando tu función)
+            val localImageUri = imageUri?.let { saveImageLocally(context, it) }
 
-        // Verificar conexión
-        val hasInternet = connectivityObserver?.isConnected() ?: true
+            // Construir objeto Expense
+            val expense = Expense(
+                id = UUID.randomUUID().toString(),
+                category = category,
+                description = description,
+                amount = amount,
+                date = date,
+                imageUrl = localImageUri?.toString(),
+                latitude = location?.latitude,
+                longitude = location?.longitude,
+                address = location?.address
+            )
 
-        return if (hasInternet) {
-            try {
-                // FLUJO NORMAL - tu código existente
-                repository.addExpense(expense, imageUri, location)
-                Result.success("✅ Gasto guardado correctamente")
-            } catch (e: Exception) {
-                // Si falla con internet, guardar offline
-                offlineBackup?.saveExpense(expense, imageUri, location)
-                Result.success("📱 Gasto guardado localmente. Se sincronizará cuando haya conexión.")
+
+            if (connectivityObserver?.isConnected() == true) {
+                repository.addExpense(expense, localImageUri, location)
+            } else {
+                offlineBackup?.saveOffline(expense)
             }
-        } else {
-            // SIN INTERNET - guardar en SQLite
-            offlineBackup?.saveExpense(expense, imageUri, location)
-            Result.success("📱 Gasto guardado localmente. Se sincronizará cuando haya conexión.")
+
+            Result.success("✅ Gasto guardado correctamente")
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

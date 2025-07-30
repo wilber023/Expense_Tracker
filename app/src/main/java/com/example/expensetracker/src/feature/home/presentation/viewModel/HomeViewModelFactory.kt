@@ -1,14 +1,9 @@
-// Actualizar tu HomeViewModelFactory existente
 package com.example.expensetracker.src.feature.home.presentation.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.expensetracker.src.feature.home.domain.UseCase.AddExpenseUseCase
-import com.example.expensetracker.src.feature.home.domain.UseCase.GetExpenseUseCase
-import com.example.expensetracker.src.feature.home.domain.UseCase.UpdateExpenseUseCase
-import com.example.expensetracker.src.feature.home.domain.UseCase.DeleteExpenseUseCase
-import com.example.expensetracker.src.feature.home.domain.UseCase.GetLocationUseCase
 import com.example.expensetracker.src.core.connectivity.ConnectivityObserver
+import com.example.expensetracker.src.feature.home.domain.UseCase.*
 
 class HomeViewModelFactory(
     private val addExpenseUseCase: AddExpenseUseCase,
@@ -16,7 +11,8 @@ class HomeViewModelFactory(
     private val updateExpenseUseCase: UpdateExpenseUseCase,
     private val deleteExpenseUseCase: DeleteExpenseUseCase,
     private val getLocationUseCase: GetLocationUseCase,
-    private val connectivityObserver: ConnectivityObserver
+    private val connectivityObserver: ConnectivityObserver,
+    private val syncOfflineExpensesUseCase: SyncOfflineExpensesUseCase
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -28,7 +24,8 @@ class HomeViewModelFactory(
                 updateExpenseUseCase,
                 deleteExpenseUseCase,
                 getLocationUseCase,
-                connectivityObserver // NUEVO PARÁMETRO
+                connectivityObserver,
+                syncOfflineExpensesUseCase
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

@@ -10,3 +10,6 @@ object home
 
 @Serializable
 object register
+
+@Serializable
+object homeAdmin

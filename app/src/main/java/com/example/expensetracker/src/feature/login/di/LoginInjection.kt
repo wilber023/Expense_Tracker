@@ -18,25 +18,24 @@ object LoginDependencies {
     private fun provideDataStoreToken(context: Context?): DataStoreToken? {
         return if (context != null) {
             try {
-
                 DataStoreToken.getInstance(context)
             } catch (e: Exception) {
-                Log.w("LoginDependencies", "No se pudo crear DataStoreToken: ${e.message}")
+                Log.w("LoginDependencies", "⚠️ No se pudo crear DataStoreToken: ${e.message}")
                 null
             }
         } else {
-            Log.d("LoginDependencies", "Contexto no disponible para DataStore")
+            Log.d("LoginDependencies", "📱 Contexto no disponible para DataStore")
             null
         }
     }
 
     private fun provideLoginRepository(context: Context?): LoginRepositoryImpl {
         val dataStore = provideDataStoreToken(context)
-        Log.d("LoginDependencies", "DataStore ${if (dataStore != null) "disponible" else "NO disponible"}")
+        Log.d("LoginDependencies", "💾 DataStore ${if (dataStore != null) "disponible" else "NO disponible"}")
 
         return LoginRepositoryImpl(
             provideLoginFetch(),
-
+            context  // PASAMOS EL CONTEXTO AL REPOSITORY
         )
     }
 
@@ -44,15 +43,13 @@ object LoginDependencies {
         return ValidationUser(provideLoginRepository(context))
     }
 
-
     fun provideLoginViewModel(context: Context): LoginViewModel {
-        Log.d("LoginDependencies", "Creando ViewModel CON contexto")
+        Log.d("LoginDependencies", "🏗️ Creando ViewModel CON contexto")
         return LoginViewModel(provideValidationUser(context))
     }
 
-
     fun provideLoginViewModel(): LoginViewModel {
-        Log.d("LoginDependencies", "Creando ViewModel SIN contexto (modo compatibilidad)")
+        Log.d("LoginDependencies", "🏗️ Creando ViewModel SIN contexto (modo compatibilidad)")
         return LoginViewModel(provideValidationUser(null))
     }
 }

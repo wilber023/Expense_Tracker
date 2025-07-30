@@ -23,7 +23,8 @@ class ImageProcessingUseCase(
                 stream.close()
                 outputStream.close()
 
-                val requestBody = file.asRequestBody("image/*".toMediaTypeOrNull())
+                val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
+                val requestBody = file.asRequestBody(mimeType.toMediaTypeOrNull())
                 val part = MultipartBody.Part.createFormData("image", file.name, requestBody)
 
                 Result.success(part)
@@ -42,7 +43,7 @@ class ImageProcessingUseCase(
                 }
             }
         } catch (e: Exception) {
-           //
+            // Ignorado
         }
     }
 }

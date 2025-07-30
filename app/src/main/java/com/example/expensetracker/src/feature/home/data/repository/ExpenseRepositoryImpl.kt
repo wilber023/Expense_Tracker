@@ -3,6 +3,7 @@ package com.example.expensetracker.src.feature.home.data.repository
 import android.net.Uri
 import com.example.expensetracker.src.core.hardware.domain.LocationData
 import com.example.expensetracker.src.database.dao.ExpenseDao
+import com.example.expensetracker.src.database.entity.ExpenseEntity
 import com.example.expensetracker.src.feature.home.data.dataSource.local.remote.ExpenseFetch
 import com.example.expensetracker.src.feature.home.data.mapper.ExpenseMapper
 import com.example.expensetracker.src.feature.home.domain.repository.ExpenseRepository
@@ -31,33 +32,42 @@ class ExpenseRepositoryImpl(
     }
 
     override fun getAllExpensesFlow(): Flow<List<Expense>> {
-         return expenseDao.getAllExpenses().map { list ->
-             list.map { ExpenseMapper.toDomain(it) }
-         }
+        return expenseDao.getAllExpenses().map { list ->
+            list.map { ExpenseMapper.toDomain(it) }
+        }
     }
 
     override suspend fun getAllExpenses(): List<Expense> {
-        val result = expenseFetch.getAllExpenses()
-
-        return if (result.isSuccess) {
-            result.getOrNull()?.map { expenseData ->
-
-                Expense(
-                    id = expenseData.id,
-                    category = expenseData.category,
-                    description = expenseData.description,
-                    amount = expenseData.amount.toDoubleOrNull() ?: 0.0,
-                    date = expenseData.date,
-                    imageUrl = expenseData.image_url,
-                    latitude = expenseData.latitude,
-                    longitude = expenseData.longitude,
-                    address = expenseData.address
-                )
-            } ?: emptyList()
-        } else {
-            throw result.exceptionOrNull() ?: Exception("Error desconocido al obtener gastos")
+        return try {
+            val result = expenseFetch.getAllExpenses()
+            if (result.isSuccess) {
+                result.getOrNull()?.map { expenseData ->
+                    Expense(
+                        id = expenseData.id,
+                        category = expenseData.category,
+                        description = expenseData.description,
+                        amount = expenseData.amount.toDoubleOrNull() ?: 0.0,
+                        date = expenseData.date,
+                        imageUrl = expenseData.image_url,
+                        latitude = expenseData.latitude,
+                        longitude = expenseData.longitude,
+                        address = expenseData.address
+                    )
+                } ?: emptyList()
+            } else {
+                getLocalExpenses()
+            }
+        } catch (e: Exception) {
+            getLocalExpenses()
         }
     }
+
+    override suspend fun getLocalExpenses(): List<Expense> {
+        return expenseDao.getAllLocalExpenses().map {
+            ExpenseMapper.toDomain(it)
+        }
+    }
+
 
     override suspend fun updateExpense(
         id: String,
@@ -90,4 +100,8 @@ class ExpenseRepositoryImpl(
             throw result.exceptionOrNull() ?: Exception("Error desconocido al eliminar gasto")
         }
     }
+    override suspend fun addExpenseFromEntity(expense: ExpenseEntity) {
+        expenseDao.insertExpense(expense)
+    }
+
 }

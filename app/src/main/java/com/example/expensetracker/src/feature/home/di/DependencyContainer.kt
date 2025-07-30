@@ -16,46 +16,22 @@ import com.example.expensetracker.src.feature.home.domain.UseCase.UpdateExpenseU
 import com.example.expensetracker.src.feature.home.domain.UseCase.DeleteExpenseUseCase
 import com.example.expensetracker.src.feature.home.domain.UseCase.ImageProcessingUseCase
 import com.example.expensetracker.src.feature.home.domain.UseCase.GetLocationUseCase
+import com.example.expensetracker.src.feature.home.domain.UseCase.SyncOfflineExpensesUseCase
 import com.example.expensetracker.src.feature.home.presentation.viewModel.HomeViewModelFactory
 
 object DependencyContainer {
 
-    // NUEVAS instancias singleton para offline
+
     private var database: AppDatabase? = null
     private var connectivityObserver: ConnectivityObserver? = null
     private var offlineBackup: OfflineBackup? = null
     private var syncService: SyncService? = null
-    private var cachedFactory: HomeViewModelFactory? = null
 
-    // ALTERNATIVA: Función para obtener factory con contexto
-    fun homeViewModelFactory(context: Context): HomeViewModelFactory {
-        return getHomeViewModelFactory(context)
-    }
-
-    // NUEVA: Propiedad lazy que requiere inicialización
-    val homeViewModelFactory: HomeViewModelFactory
-        get() = cachedFactory ?: throw IllegalStateException("HomeViewModelFactory not initialized. Call initializeFactory(context) first.")
-
-    // NUEVO: Método para inicializar el factory
-    fun initializeFactory(context: Context) {
-        if (cachedFactory == null) {
-            cachedFactory = createHomeViewModelFactory(context)
-        }
-    }
-
-    // MÉTODO CORREGIDO - Ahora requiere contexto no nulo
     private fun createExpenseRepository(context: Context): ExpenseRepositoryImpl {
         val expenseFetch = ExpenseFetch(context = context)
         val expenseDao = getDatabase(context).expenseDao()
         return ExpenseRepositoryImpl(expenseFetch, expenseDao)
     }
-
-    // Método sobrecargado para casos con contexto nullable
-    private fun createExpenseRepositoryOrNull(context: Context?): ExpenseRepositoryImpl? {
-        return context?.let { createExpenseRepository(it) }
-    }
-
-    // NUEVOS MÉTODOS para el sistema offline
 
     private fun getDatabase(context: Context): AppDatabase {
         return database ?: synchronized(this) {
@@ -84,7 +60,7 @@ object DependencyContainer {
         }
     }
 
-    private fun getSyncService(context: Context): SyncService {
+     fun getSyncService(context: Context): SyncService {
         return syncService ?: synchronized(this) {
             syncService ?: SyncService(
                 offlineBackup = getOfflineBackup(context),
@@ -92,41 +68,43 @@ object DependencyContainer {
                 connectivityObserver = getConnectivityObserver(context)
             ).also {
                 syncService = it
-                // Iniciar observación de sincronización
-                it.startObservingSync()
+                it.startObservingSync { count ->
+                 }
             }
         }
     }
 
-    // TU MÉTODO EXISTENTE - Con pequeñas adiciones
+
+
     private fun createHomeViewModelFactory(context: Context): HomeViewModelFactory {
         HardwareModule.initialize(context)
 
-        // Crear repositorio con contexto válido
         val expenseRepository = createExpenseRepository(context)
-        val imageProcessingUseCase = ImageProcessingUseCase(context)
 
         val getLocationUseCase = GetLocationUseCase(HardwareModule.gpsManager)
 
-        // NUEVAS DEPENDENCIAS para offline
+
         val connectivityObserver = getConnectivityObserver(context)
         val offlineBackup = getOfflineBackup(context)
 
-        // Inicializar sync service
+
         getSyncService(context)
 
-        // ACTUALIZADO: AddExpenseUseCase ahora incluye offline
+
         val addExpenseUseCase = AddExpenseUseCase(
-            expenseRepository,
-            imageProcessingUseCase,
-            connectivityObserver,  // NUEVO
-            offlineBackup          // NUEVO
+            repository = expenseRepository,
+            connectivityObserver = connectivityObserver,
+            offlineBackup = offlineBackup
         )
 
-        // TU CÓDIGO EXISTENTE - Sin cambios
         val getExpenseUseCase = GetExpenseUseCase(expenseRepository)
         val updateExpenseUseCase = UpdateExpenseUseCase(expenseRepository)
         val deleteExpenseUseCase = DeleteExpenseUseCase(expenseRepository)
+
+        val syncOfflineExpensesUseCase = SyncOfflineExpensesUseCase(
+            repository = expenseRepository,
+            offlineBackup = offlineBackup
+        )
 
         return HomeViewModelFactory(
             addExpenseUseCase,
@@ -134,21 +112,14 @@ object DependencyContainer {
             updateExpenseUseCase,
             deleteExpenseUseCase,
             getLocationUseCase,
-            connectivityObserver  // NUEVO - Agregar al factory
+            connectivityObserver,
+            syncOfflineExpensesUseCase
         )
+
     }
 
-    // TU MÉTODO EXISTENTE - Sin cambios
     fun getHomeViewModelFactory(context: Context): HomeViewModelFactory {
         return createHomeViewModelFactory(context)
     }
 
-    // NUEVO - Método para limpiar recursos (opcional)
-    fun clear() {
-        database?.close()
-        database = null
-        connectivityObserver = null
-        offlineBackup = null
-        syncService = null
-    }
 }

@@ -1,5 +1,9 @@
 package com.example.expensetracker.src.feature.home.presentation.viewModel
 
+import android.content.Context
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+
 import android.net.Uri
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
@@ -14,6 +18,8 @@ import com.example.expensetracker.src.feature.home.domain.repository.Expense
 import com.example.expensetracker.src.core.connectivity.ConnectivityObserver  // ← NUEVO IMPORT
 import kotlinx.coroutines.launch
 import android.util.Log
+import com.example.expensetracker.src.feature.home.domain.UseCase.SyncOfflineExpensesUseCase
+
 
 class HomeViewModel(
     private val addExpenseUseCase: AddExpenseUseCase,
@@ -21,8 +27,10 @@ class HomeViewModel(
     private val updateExpenseUseCase: UpdateExpenseUseCase,
     private val deleteExpenseUseCase: DeleteExpenseUseCase,
     private val getLocationUseCase: GetLocationUseCase,
-    private val connectivityObserver: ConnectivityObserver  // ← NUEVO PARÁMETRO
+    private val connectivityObserver: ConnectivityObserver,
+    private val syncOfflineExpensesUseCase: SyncOfflineExpensesUseCase
 ) : ViewModel() {
+
 
     var expenses by mutableStateOf<List<Expense>>(emptyList())
         private set
@@ -88,20 +96,44 @@ class HomeViewModel(
 
     init {
         loadExpenses()
-        observeConnectivity()  // ← NUEVA LÍNEA
+        observeConnectivity()
+
+    }
+    private val _syncMessage = MutableSharedFlow<String>()
+    val syncMessage = _syncMessage.asSharedFlow()
+
+    fun notifySyncSuccess(count: Int) {
+        viewModelScope.launch {
+            _syncMessage.emit("✅ $count gastos sincronizados con el servidor")
+        }
     }
 
-    // ← NUEVO MÉTODO PARA OBSERVAR CONECTIVIDAD
     private fun observeConnectivity() {
         viewModelScope.launch {
             connectivityObserver.observe().collect { status ->
-                isConnected = when (status) {
-                    ConnectivityObserver.Status.Available -> true
-                    else -> false
+                isConnected = (status == ConnectivityObserver.Status.Available)
+
+                if (isConnected) {
+                    // Se reconectó: intenta sincronizar
+                    syncOfflineExpenses()
                 }
             }
         }
     }
+
+    private fun syncOfflineExpenses() {
+        viewModelScope.launch {
+            val result = syncOfflineExpensesUseCase() // ✅ Llamamos al use case real
+            if (result.isSuccess && result.getOrNull() ?: 0 > 0) {
+                saveStatusMessage = "✅ ${result.getOrNull()} gastos locales subidos al servidor"
+                loadExpenses()
+            }
+        }
+    }
+    fun clearSaveStatusMessage() {
+        saveStatusMessage = null
+    }
+
 
     fun updateImageUri(newUri: Uri?) {
         imageUri = newUri
@@ -253,7 +285,8 @@ class HomeViewModel(
     }
 
     // ← MÉTODO ACTUALIZADO CON SISTEMA OFFLINE
-    fun onAddExpenseClick() {
+    fun onAddExpenseClick(context: Context) {
+
         if (category.isBlank() || description.isBlank() || amount.isBlank() || date.isBlank()) {
             errorMessage = "Todos los campos son obligatorios"
             return
@@ -280,7 +313,8 @@ class HomeViewModel(
                     amount = amountValue,
                     date = date,
                     imageUri = imageUri,
-                    location = currentLocation
+                    location = currentLocation,
+                    context = context
                 )
 
                 // ← NUEVO: Manejar el resultado del sistema offline/online
@@ -392,6 +426,9 @@ class HomeViewModel(
             fetchError = null
             try {
                 val result = getExpenseUseCase()
+                result.forEach {
+                    Log.d("VM-LOAD", "Gasto: ${it.category}, img=${it.imageUrl}, lat=${it.latitude}, lon=${it.longitude}, addr=${it.address}")
+                }
                 expenses = result
             } catch (e: Exception) {
                 fetchError = "Error al cargar los gastos: ${e.message}"

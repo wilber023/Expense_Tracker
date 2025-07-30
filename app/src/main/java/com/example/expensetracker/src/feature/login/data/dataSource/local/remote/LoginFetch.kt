@@ -10,43 +10,40 @@ class LoginFetch(private val api: LoginApi = NetworkModule.loginApi) {
 
     suspend fun login(username: String, pin: String): Result<LoginResponse> {
         return try {
-            Log.d("LoginFetch", "Enviando request - Usuario: $username, PIN: $pin")
+            Log.d("LoginFetch", "🔐 Enviando request - Usuario: $username")
 
             val response = api.login(LoginRequest(username, pin))
 
-            Log.d("LoginFetch", "Response code: ${response.code()}")
-            Log.d("LoginFetch", "Response message: ${response.message()}")
+            Log.d("LoginFetch", "📡 Response code: ${response.code()}")
 
             if (response.isSuccessful) {
                 val body = response.body()
-                Log.d("LoginFetch", "Response body: $body")
+                Log.d("LoginFetch", "📦 Response body: $body")
 
                 if (body != null) {
-                    Log.d("LoginFetch", "Success: ${body.success}")
-                    Log.d("LoginFetch", "Token: '${body.token}'")
-                    Log.d("LoginFetch", "Message: ${body.message}")
+                    Log.d("LoginFetch", "✅ Success: ${body.success}")
+                    Log.d("LoginFetch", "🎭 Role: ${body.userRole}")
+                    Log.d("LoginFetch", "🔑 Token: ${if (body.token != null) "presente" else "ausente"}")
 
                     Result.success(body)
                 } else {
-                    Log.e("LoginFetch", "Body es null")
+                    Log.e("LoginFetch", "❌ Body es null")
                     Result.success(
                         LoginResponse(
-                        success = false,
-                        message = "Respuesta vacía del servidor"
-                    )
+                            success = false,
+                            message = "Respuesta vacía del servidor"
+                        )
                     )
                 }
             } else {
-                Log.e("LoginFetch", "Error HTTP: ${response.code()} - ${response.message()}")
-
-
+                Log.e("LoginFetch", "❌ Error HTTP: ${response.code()}")
                 val errorBody = response.errorBody()?.string()
                 Log.e("LoginFetch", "Error body: $errorBody")
 
                 Result.failure(Exception("Error de autenticación: ${response.message()}"))
             }
         } catch (e: Exception) {
-            Log.e("LoginFetch", "Error de red: ${e.message}", e)
+            Log.e("LoginFetch", "💥 Error de red: ${e.message}", e)
             Result.failure(e)
         }
     }
