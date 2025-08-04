@@ -10,7 +10,7 @@ interface AdminRepository {
     suspend fun refreshUsers(): Result<List<User>>
     suspend fun deleteUser(user: User): Result<Unit>
     suspend fun sendNotification(user: User?, message: String): Result<String>
-    suspend fun updateUserStatus(userId: String, isActive: Boolean): Result<Unit>
+    suspend fun updateUserStatus(userId: Int, isActive: Boolean): Result<Unit>
     suspend fun getDashboardStats(): Result<DashboardStats>
     fun getUsersStream(): Flow<Result<List<User>>>
 }

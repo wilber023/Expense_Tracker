@@ -1,6 +1,6 @@
 package com.example.expensetracker.src.feature.admin.domain.UseCase
 
-import com.example.expensetracker.src.feature.admin.domain.usecase.SendNotificationAndUpdateStatsUseCase
+import com.example.expensetracker.src.feature.admin.domain.UseCase.SendNotificationAndUpdateStatsUseCase
 
 data class AdminOperationsUseCase(
     val getAllUsers: GetAllUsersUseCase,
@@ -8,5 +8,7 @@ data class AdminOperationsUseCase(
     val deleteUserAndRefresh: DeleteUserAndRefreshUseCase,
     val sendNotificationAndUpdateStats: SendNotificationAndUpdateStatsUseCase,
     val updateUserStatus: UpdateUserStatusUseCase,
-    val getDashboardStats: GetDashboardStatsUseCase
+    val getDashboardStats: GetDashboardStatsUseCase,
+    val getNotifications: GetNotificationsUseCase,
+    val markNotificationAsRead: MarkNotificationAsReadUseCase
 )

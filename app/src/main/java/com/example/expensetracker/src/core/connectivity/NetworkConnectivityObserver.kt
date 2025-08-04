@@ -33,7 +33,7 @@ class NetworkConnectivityObserver(
                             launch { send(ConnectivityObserver.Status.Available) }
                         }
                     } else {
-                         launch { send(ConnectivityObserver.Status.Available) } // O un estado más genérico
+                         launch { send(ConnectivityObserver.Status.Available) }
                     }
                 }
 
@@ -70,7 +70,7 @@ class NetworkConnectivityObserver(
             }
 
             val request = NetworkRequest.Builder()
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) // Solicita una red con acceso a Internet
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                 .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
                 .build()

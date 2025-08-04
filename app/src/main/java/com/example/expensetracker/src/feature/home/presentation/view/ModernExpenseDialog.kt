@@ -58,7 +58,7 @@ fun ModernExpenseDialog(
     var showImageOptions by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
-    // Animation states
+
     val slideIn by animateFloatAsState(
         targetValue = 1f,
         animationSpec = spring(
@@ -94,7 +94,7 @@ fun ModernExpenseDialog(
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // Executive Header
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()

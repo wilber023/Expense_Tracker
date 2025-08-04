@@ -42,7 +42,7 @@ class OfflineBackup(
                 isUploaded = false
             )
 
-            Log.d("OfflineBackup", "📝 Guardado OFFLINE en SQLite: $entity")
+            Log.d("OfflineBackup", " Guardado OFFLINE en SQLite: $entity")
             expenseDao.insertExpense(entity)
         }
     }
@@ -57,7 +57,4 @@ class OfflineBackup(
         expenseDao.markAsUploaded(expenseId)
     }
 
-    suspend fun getAllOfflineExpenses(): List<ExpenseEntity> {
-        return expenseDao.getAllLocalExpenses()
-    }
 }

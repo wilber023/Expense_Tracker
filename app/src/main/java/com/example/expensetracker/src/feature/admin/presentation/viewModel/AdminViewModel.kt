@@ -25,7 +25,7 @@ sealed class AdminEvent {
     object RefreshData : AdminEvent()
     data class DeleteUser(val user: User) : AdminEvent()
     data class SendNotification(val user: User?, val message: String) : AdminEvent()
-    data class UpdateUserStatus(val userId: String, val isActive: Boolean) : AdminEvent()
+    data class UpdateUserStatus(val userId: Int, val isActive: Boolean) : AdminEvent()
     object ClearError : AdminEvent()
     object ClearNotificationMessage : AdminEvent()
     object Logout : AdminEvent()
@@ -114,7 +114,7 @@ class AdminViewModel(
     }
 
     private fun deleteUser(user: User) = viewModelScope.launch {
-        Log.d("AdminViewModel", "Eliminando usuario: ${user.name}")
+        Log.d("AdminViewModel", "Eliminando usuario: ${user.username}") // ← Cambiar name a username
         when (val result = adminOperations.deleteUserAndRefresh(user)) {
             is Result.Success -> {
                 Log.d("AdminViewModel", "Usuario eliminado exitosamente")
@@ -153,13 +153,13 @@ class AdminViewModel(
         }
     }
 
-    private fun updateUserStatus(userId: String, isActive: Boolean) = viewModelScope.launch {
+    private fun updateUserStatus(userId: Int, isActive: Boolean) = viewModelScope.launch { // ← Cambiar String a Int
         Log.d("AdminViewModel", "Actualizando estado del usuario: $userId -> $isActive")
         when (val result = adminOperations.updateUserStatus(userId, isActive)) {
             is Result.Success -> {
                 Log.d("AdminViewModel", "Estado actualizado exitosamente")
                 val updated = _uiState.value.users.map {
-                    if (it.id == userId) it.copy(isActive = isActive) else it
+                    if (it.id == userId) it.copy(isActive = isActive) else it // ← Ahora funciona: Int == Int
                 }
                 _uiState.value = _uiState.value.copy(
                     users = updated,

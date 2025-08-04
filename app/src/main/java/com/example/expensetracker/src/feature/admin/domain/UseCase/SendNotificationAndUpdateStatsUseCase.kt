@@ -1,10 +1,12 @@
-package com.example.expensetracker.src.feature.admin.domain.usecase
+package com.example.expensetracker.src.feature.admin.domain.UseCase
 
 import com.example.expensetracker.src.feature.admin.domain.model.User
 import com.example.expensetracker.src.feature.admin.domain.repository.AdminRepository
 import com.example.expensetracker.src.core.common.Result
 import com.example.expensetracker.src.feature.admin.domain.Models.DashboardStats
-
+import com.example.expensetracker.src.feature.admin.domain.repository.NotificationRepository
+import com.example.expensetracker.src.feature.admin.domain.Models.Notification
+import javax.inject.Inject
 
 class SendNotificationAndUpdateStatsUseCase(
     private val repository: AdminRepository
@@ -17,18 +19,31 @@ class SendNotificationAndUpdateStatsUseCase(
                         Result.Success(result.data to statsResult.data)
                     }
                     is Result.Error -> {
-                        // Si fallan las estadísticas, seguimos pero con vacío
                         Result.Success(result.data to DashboardStats())
                     }
                     is Result.Loading -> {
-                        // Improbable, pero puedes tratarlo como DashboardStats vacío
                         Result.Success(result.data to DashboardStats())
                     }
                 }
             }
-
             is Result.Error -> Result.Error(result.message)
             is Result.Loading -> Result.Loading
         }
+    }
+}
+
+class GetNotificationsUseCase @Inject constructor(
+    private val repository: NotificationRepository
+) {
+    suspend operator fun invoke(): Result<List<Notification>> {
+        return repository.getNotifications()
+    }
+}
+
+class MarkNotificationAsReadUseCase @Inject constructor(
+    private val repository: NotificationRepository
+) {
+    suspend operator fun invoke(notificationId: Int): Result<String> {
+        return repository.markAsRead(notificationId)
     }
 }

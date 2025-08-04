@@ -11,8 +11,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalContext
 import com.example.expensetracker.src.feature.admin.presentation.view.HomeAdminScreen
 import com.example.expensetracker.src.feature.home.presentation.view.HomeScreen
-import com.example.expensetracker.src.feature.login.presentation.LoginScreen
-import com.example.expensetracker.src.feature.login.presentation.LoginViewModel
+import com.example.expensetracker.src.feature.login.presentation.view.LoginScreen
+import com.example.expensetracker.src.feature.login.presentation.ViewModel.LoginViewModel
 import com.example.expensetracker.src.feature.login.di.LoginDependencies
 import com.example.expensetracker.src.feature.register.presentation.view.RegisterScreen
 import com.example.expensetracker.src.feature.register.di.DependencyContainerRegister

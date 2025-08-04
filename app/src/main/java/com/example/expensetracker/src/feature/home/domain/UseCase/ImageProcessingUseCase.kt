@@ -43,7 +43,7 @@ class ImageProcessingUseCase(
                 }
             }
         } catch (e: Exception) {
-            // Ignorado
+            //
         }
     }
 }

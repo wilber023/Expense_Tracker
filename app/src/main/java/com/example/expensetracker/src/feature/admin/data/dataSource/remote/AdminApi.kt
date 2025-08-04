@@ -4,38 +4,29 @@ import com.example.expensetracker.src.feature.admin.domain.model.User
 import retrofit2.http.*
 
 interface AdminApi {
-    @GET("api/auth/users")
-    suspend fun getUsers(@Header("Authorization") token: String): List<User>
+    @GET("api/users")
+    suspend fun getUsers(@Header("Authorization") token: String): UsersResponse
 
-    @DELETE("api/auth/users/{id}")
+    @DELETE("api/users/{id}")
     suspend fun deleteUser(
-        @Path("id") userId: String,
+        @Path("id") userId: Int,
         @Header("Authorization") token: String
     )
 
-    @POST("api/notifications/send")
-    suspend fun sendNotification(
-        @Header("Authorization") token: String,
-        @Body request: NotificationRequest
-    ): NotificationResponse
-
-    @PUT("api/auth/users/{id}/status")
+    @PUT("api/users/{id}/status")
     suspend fun updateUserStatus(
-        @Path("id") userId: String,
+        @Path("id") userId: Int,
         @Header("Authorization") token: String,
         @Body request: StatusUpdateRequest
     )
 }
 
-data class NotificationRequest(
-    val userId: String? = null, // null para todos los usuarios
-    val message: String
+data class UsersResponse(
+    val success: Boolean,
+    val count: Int,
+    val data: List<User>
 )
 
-data class NotificationResponse(
-    val success: Boolean,
-    val message: String
-)
 
 data class StatusUpdateRequest(
     val isActive: Boolean

@@ -36,7 +36,7 @@ fun ExpenseItem(
     var isExpanded by remember { mutableStateOf(false) }
     var isPressed by remember { mutableStateOf(false) }
 
-    // Animation states
+
     val cardScale by animateFloatAsState(
         targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(
@@ -88,18 +88,18 @@ fun ExpenseItem(
             Column(
                 modifier = Modifier.padding(20.dp)
             ) {
-                // Main Content Row
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Left Content
+
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Category with executive styling
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -133,7 +133,6 @@ fun ExpenseItem(
                             }
                         }
 
-                        // Description with modern typography
                         Text(
                             text = expense.description,
                             fontSize = 16.sp,
@@ -144,7 +143,6 @@ fun ExpenseItem(
                             lineHeight = 20.sp
                         )
 
-                        // Amount with executive styling
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -164,7 +162,6 @@ fun ExpenseItem(
                             )
                         }
 
-                        // Date with icon
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -184,12 +181,11 @@ fun ExpenseItem(
                         }
                     }
 
-                    // Action Buttons with executive design
                     Column(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.End
                     ) {
-                        // Edit Button
+
                         Card(
                             modifier = Modifier
                                 .size(48.dp)
@@ -213,7 +209,6 @@ fun ExpenseItem(
                             }
                         }
 
-                        // Delete Button
                         Card(
                             modifier = Modifier
                                 .size(48.dp)
@@ -237,7 +232,6 @@ fun ExpenseItem(
                             }
                         }
 
-                        // Image indicator if exists
                         if (expense.imageUrl != null) {
                             Card(
                                 modifier = Modifier
@@ -263,7 +257,6 @@ fun ExpenseItem(
                     }
                 }
 
-                // Expandable Image Section
                 AnimatedVisibility(
                     visible = isExpanded && expense.imageUrl != null,
                     enter = slideInVertically(
@@ -327,7 +320,6 @@ fun ExpenseItem(
                 }
             }
 
-            // Executive gradient overlay for premium feel
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

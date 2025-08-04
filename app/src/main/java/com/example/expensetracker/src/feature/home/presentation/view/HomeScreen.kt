@@ -5,7 +5,6 @@ import com.example.expensetracker.src.feature.home.presentation.viewModel.HomeVi
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarData
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
@@ -74,7 +73,7 @@ fun HomeScreen(
 
         DependencyContainer.getSyncService(context).startObservingSync { count ->
             if (count > 0) {
-                snackbarHostState.showSnackbar("✅ $count gastos sincronizados con el servidor")
+                snackbarHostState.showSnackbar(" $count gastos sincronizados con el servidor")
             }
         }
     }
@@ -154,16 +153,15 @@ fun HomeScreen(
         }
     }
 
-    // Executive gradient background
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF0D1117),  // Dark navy
-                        Color(0xFF161B22),  // Slightly lighter navy
-                        Color(0xFF21262D)   // Medium dark
+                        Color(0xFF0D1117),
+                        Color(0xFF161B22),
+                        Color(0xFF21262D)
                     )
                 )
             )
@@ -188,7 +186,7 @@ fun HomeScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Modern Header with glassmorphism
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -235,14 +233,13 @@ fun HomeScreen(
                 }
             }
 
-            // Modern Action Buttons
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Add Expense FAB
+
                 ExtendedFloatingActionButton(
                     onClick = { viewModel.showAddDialog() },
                     modifier = Modifier
@@ -269,7 +266,7 @@ fun HomeScreen(
                     )
                 }
 
-                // Exit Button
+
                 FloatingActionButton(
                     onClick = { showExitDialog = true },
                     modifier = Modifier
@@ -291,7 +288,7 @@ fun HomeScreen(
                 }
             }
 
-            // Executive Expense History Card
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()

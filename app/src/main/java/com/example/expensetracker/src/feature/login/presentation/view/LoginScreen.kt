@@ -1,4 +1,4 @@
-package com.example.expensetracker.src.feature.login.presentation
+package com.example.expensetracker.src.feature.login.presentation.view
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.expensetracker.src.feature.login.presentation.ViewModel.LoginViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,14 +41,14 @@ fun LoginScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // 🎨 ANIMACIONES Y ESTADOS VISUALES
+
     var showPin by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (isLoading) 0.95f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
     )
 
-    // 🌈 GRADIENTES FUTURISTAS
+
     val primaryGradient = Brush.linearGradient(
         colors = listOf(
             Color(0xFF667eea),
@@ -76,7 +77,7 @@ fun LoginScreen(
             .background(backgroundGradient)
             .systemBarsPadding()
     ) {
-        // ✨ EFECTOS DE FONDO ANIMADOS
+
         AnimatedBackground()
 
         Column(
@@ -88,7 +89,7 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center
         ) {
 
-            // 🚀 LOGO Y TÍTULO FUTURISTA
+
             AnimatedVisibility(
                 visible = true,
                 enter = slideInVertically(
@@ -100,7 +101,7 @@ fun LoginScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(bottom = 48.dp)
                 ) {
-                    // Logo animado
+
                     Card(
                         modifier = Modifier
                             .size(80.dp)
@@ -144,7 +145,6 @@ fun LoginScreen(
                 }
             }
 
-            // 🎯 TARJETA DE LOGIN FUTURISTA
             AnimatedVisibility(
                 visible = true,
                 enter = slideInVertically(
@@ -171,7 +171,6 @@ fun LoginScreen(
                             verticalArrangement = Arrangement.spacedBy(24.dp)
                         ) {
 
-                            // 👤 CAMPO DE USUARIO
                             FuturisticTextField(
                                 value = username,
                                 onValueChange = viewModel::setUsername,
@@ -180,7 +179,6 @@ fun LoginScreen(
                                 isError = errorMessage != null && username.isEmpty()
                             )
 
-                            // 🔒 CAMPO DE PIN/PASSWORD
                             FuturisticTextField(
                                 value = pin,
                                 onValueChange = viewModel::setPin,
@@ -193,7 +191,6 @@ fun LoginScreen(
                                 isError = errorMessage != null && pin.isEmpty()
                             )
 
-                            // ⚠️ MENSAJE DE ERROR ANIMADO
                             AnimatedVisibility(
                                 visible = errorMessage != null,
                                 enter = slideInVertically() + fadeIn(),
@@ -230,7 +227,6 @@ fun LoginScreen(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // 🚀 BOTÓN DE LOGIN FUTURISTA
                             FuturisticButton(
                                 onClick = { viewModel.validarLogin() },
                                 enabled = !isLoading,
@@ -239,7 +235,6 @@ fun LoginScreen(
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            // 📝 ENLACE DE REGISTRO
                             TextButton(
                                 onClick = onRegisterClick,
                                 modifier = Modifier.padding(top = 16.dp)
@@ -433,7 +428,6 @@ private fun AnimatedBackground() {
         )
     )
 
-    // Efectos de partículas/círculos flotantes
     Box(modifier = Modifier.fillMaxSize()) {
         repeat(6) { index ->
             val size = (30 + index * 15).dp

@@ -7,7 +7,7 @@ import com.example.expensetracker.src.core.network.NetworkModule
 import com.example.expensetracker.src.login.data.dataSource.remote.LoginFetch
 import com.example.expensetracker.src.feature.login.data.repository.LoginRepositoryImpl
 import com.example.expensetracker.src.feature.login.domain.UseCase.ValidationUser
-import com.example.expensetracker.src.feature.login.presentation.LoginViewModel
+import com.example.expensetracker.src.feature.login.presentation.ViewModel.LoginViewModel
 
 object LoginDependencies {
 
@@ -35,7 +35,7 @@ object LoginDependencies {
 
         return LoginRepositoryImpl(
             provideLoginFetch(),
-            context  // PASAMOS EL CONTEXTO AL REPOSITORY
+            context
         )
     }
 
@@ -45,11 +45,9 @@ object LoginDependencies {
 
     fun provideLoginViewModel(context: Context): LoginViewModel {
         Log.d("LoginDependencies", "🏗️ Creando ViewModel CON contexto")
-        return LoginViewModel(provideValidationUser(context))
-    }
-
-    fun provideLoginViewModel(): LoginViewModel {
-        Log.d("LoginDependencies", "🏗️ Creando ViewModel SIN contexto (modo compatibilidad)")
-        return LoginViewModel(provideValidationUser(null))
+        return LoginViewModel(
+            provideValidationUser(context),
+            context
+        )
     }
 }

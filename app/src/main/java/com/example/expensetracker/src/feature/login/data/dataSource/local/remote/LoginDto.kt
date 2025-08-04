@@ -1,6 +1,7 @@
 package com.example.expensetracker.src.feature.login.data.dataSource.local.remote
 
 data class LoginRequest(
+    val role: String,
     val username: String,
     val pin: String
 )

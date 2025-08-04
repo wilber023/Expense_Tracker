@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.jetbrainsKotlinSerialization)
     id("org.jetbrains.kotlin.kapt")
+    id("com.google.gms.google-services")
 
 }
 
@@ -44,10 +45,12 @@ android {
 
 dependencies {
 
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.analytics)
     kapt(libs.hilt.compiler)
     kapt(libs.room.compiler)
     implementation(libs.hilt.android)
-
     implementation(libs.hilt.navigation.compose)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)

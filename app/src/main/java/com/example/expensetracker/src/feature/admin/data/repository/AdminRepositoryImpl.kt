@@ -4,9 +4,11 @@ import android.util.Log
 import com.example.expensetracker.src.core.common.Result
 import com.example.expensetracker.src.core.token.TokenRepository
 import com.example.expensetracker.src.feature.admin.data.dataSource.remote.AdminApi
-import com.example.expensetracker.src.feature.admin.data.dataSource.remote.NotificationRequest
+import com.example.expensetracker.src.feature.admin.data.dataSource.remote.NotificationApi
 import com.example.expensetracker.src.feature.admin.data.dataSource.remote.StatusUpdateRequest
 import com.example.expensetracker.src.feature.admin.domain.Models.DashboardStats
+import com.example.expensetracker.src.feature.admin.domain.Models.NotificationRequest
+import com.example.expensetracker.src.feature.admin.domain.Models.SendNotificationToUserRequest
 import com.example.expensetracker.src.feature.admin.domain.model.User
 import com.example.expensetracker.src.feature.admin.domain.repository.AdminRepository
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +16,7 @@ import kotlinx.coroutines.flow.flow
 
 class AdminRepositoryImpl(
     private val api: AdminApi,
+    private val notificationApi: NotificationApi,
     private val tokenRepository: TokenRepository
 ) : AdminRepository {
 
@@ -26,9 +29,9 @@ class AdminRepositoryImpl(
             }
 
             Log.d("AdminRepository", "Obteniendo usuarios con token")
-            val users = api.getUsers("Bearer $token")
-            Log.d("AdminRepository", "Usuarios obtenidos: ${users.size}")
-            Result.Success(users)
+            val response = api.getUsers("Bearer $token")
+            Log.d("AdminRepository", "Usuarios obtenidos: ${response.data.size}")
+            Result.Success(response.data)
         } catch (e: Exception) {
             Log.e("AdminRepository", "Error al obtener usuarios: ${e.message}")
             Result.Error(e.message ?: "Error al obtener usuarios")
@@ -44,7 +47,7 @@ class AdminRepositoryImpl(
                 return Result.Error("Token no disponible")
             }
 
-            Log.d("AdminRepository", "Eliminando usuario: ${user.name}")
+            Log.d("AdminRepository", "Eliminando usuario: ${user.username}")
             api.deleteUser(user.id, "Bearer $token")
             Log.d("AdminRepository", "Usuario eliminado exitosamente")
             Result.Success(Unit)
@@ -62,29 +65,58 @@ class AdminRepositoryImpl(
             }
 
             Log.d("AdminRepository", "Enviando notificación")
-            val request = NotificationRequest(
-                userId = user?.id,
-                message = message
-            )
 
-            val response = api.sendNotification("Bearer $token", request)
+            val response = if (user != null) {
 
-            if (response.success) {
+                Log.d("AdminRepository", "Enviando a usuario específico: ${user.username}")
+                val request = SendNotificationToUserRequest(
+                    title = "Notificación del Administrador",
+                    body = message,
+                    userId = user.id
+                )
+                notificationApi.sendNotificationToUser("Bearer $token", user.id, request)
+            } else {
+
+                Log.d("AdminRepository", "Enviando a todos los usuarios")
+                val request = NotificationRequest(
+                    title = "Notificación del Administrador",
+                    body = message
+                )
+                Log.d("AdminRepository", "Request creado: title=${request.title}, body=${request.body}")
+                notificationApi.sendNotificationToAll("Bearer $token", request)
+            }
+
+            Log.d("AdminRepository", "Respuesta HTTP código: ${response.code()}")
+            Log.d("AdminRepository", "Respuesta exitosa: ${response.isSuccessful}")
+            Log.d("AdminRepository", "Body de respuesta: ${response.body()}")
+
+
+            if (response.isSuccessful && response.body()?.success == true) {
                 Log.d("AdminRepository", "Notificación enviada exitosamente")
                 Result.Success("Notificación enviada exitosamente")
             } else {
-                Log.e("AdminRepository", "Error en respuesta: ${response.message}")
-                Result.Error(response.message)
+
+                val errorMessage = if (response.code() == 404) {
+                    val errorBody = response.errorBody()?.string()
+                    if (errorBody?.contains("No hay usuarios con tokens") == true) {
+                        "No hay usuarios registrados para recibir notificaciones push"
+                    } else {
+                        "Servicio de notificaciones no disponible"
+                    }
+                } else {
+                    response.body()?.message ?: "Error desconocido"
+                }
+
+                Log.e("AdminRepository", "Error en respuesta: $errorMessage")
+                Result.Error(errorMessage)
             }
         } catch (e: Exception) {
             Log.e("AdminRepository", "Error al enviar notificación: ${e.message}")
-            // Simular éxito para testing
-            kotlinx.coroutines.delay(1000)
-            Result.Success("Notificación enviada (simulado)")
+            Result.Error(e.message ?: "Error al enviar notificación")
         }
     }
 
-    override suspend fun updateUserStatus(userId: String, isActive: Boolean): Result<Unit> {
+    override suspend fun updateUserStatus(userId: Int, isActive: Boolean): Result<Unit> {
         return try {
             val token = tokenRepository.getToken()
             if (token.isNullOrEmpty()) {
@@ -98,7 +130,6 @@ class AdminRepositoryImpl(
             Result.Success(Unit)
         } catch (e: Exception) {
             Log.e("AdminRepository", "Error al actualizar estado: ${e.message}")
-            // Simular éxito para testing
             kotlinx.coroutines.delay(500)
             Result.Success(Unit)
         }
@@ -120,7 +151,7 @@ class AdminRepositoryImpl(
                 }
                 is Result.Error -> {
                     Log.e("AdminRepository", "Error obteniendo usuarios para stats")
-                    Result.Success(DashboardStats()) // Retornar stats vacías en caso de error
+                    Result.Success(DashboardStats())
                 }
                 else -> Result.Success(DashboardStats())
             }

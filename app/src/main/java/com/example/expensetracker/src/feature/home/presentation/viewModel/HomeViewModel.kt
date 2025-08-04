@@ -104,7 +104,7 @@ class HomeViewModel(
 
     fun notifySyncSuccess(count: Int) {
         viewModelScope.launch {
-            _syncMessage.emit("✅ $count gastos sincronizados con el servidor")
+            _syncMessage.emit(" $count gastos sincronizados con el servidor")
         }
     }
 
@@ -114,7 +114,7 @@ class HomeViewModel(
                 isConnected = (status == ConnectivityObserver.Status.Available)
 
                 if (isConnected) {
-                    // Se reconectó: intenta sincronizar
+
                     syncOfflineExpenses()
                 }
             }
@@ -123,9 +123,9 @@ class HomeViewModel(
 
     private fun syncOfflineExpenses() {
         viewModelScope.launch {
-            val result = syncOfflineExpensesUseCase() // ✅ Llamamos al use case real
+            val result = syncOfflineExpensesUseCase()
             if (result.isSuccess && result.getOrNull() ?: 0 > 0) {
-                saveStatusMessage = "✅ ${result.getOrNull()} gastos locales subidos al servidor"
+                saveStatusMessage = " ${result.getOrNull()} gastos locales subidos al servidor"
                 loadExpenses()
             }
         }
@@ -217,18 +217,13 @@ class HomeViewModel(
         currentExpense = null
     }
 
-    fun clearError() {
-        errorMessage = null
-        fetchError = null
-        locationError = null
-        saveStatusMessage = null  // ← AGREGAR ESTA LÍNEA
-    }
+
 
     fun getCurrentImageUrl(): String? {
         return currentExpense?.imageUrl
     }
 
-    // Funciones para GPS
+
     fun toggleLocationUsage() {
         useCurrentLocation = !useCurrentLocation
         if (useCurrentLocation) {
@@ -284,7 +279,7 @@ class HomeViewModel(
         getCurrentLocation()
     }
 
-    // ← MÉTODO ACTUALIZADO CON SISTEMA OFFLINE
+
     fun onAddExpenseClick(context: Context) {
 
         if (category.isBlank() || description.isBlank() || amount.isBlank() || date.isBlank()) {
@@ -302,11 +297,11 @@ class HomeViewModel(
             try {
                 isLoading = true
                 errorMessage = null
-                saveStatusMessage = null  // ← NUEVA LÍNEA
+                saveStatusMessage = null
 
                 Log.d("ViewModel", "Enviando ubicación: $currentLocation")
 
-                // ← ACTUALIZADO: addExpenseUseCase ahora retorna Result<String>
+
                 val result = addExpenseUseCase(
                     category = category,
                     description = description,
@@ -317,14 +312,14 @@ class HomeViewModel(
                     context = context
                 )
 
-                // ← NUEVO: Manejar el resultado del sistema offline/online
+
                 if (result.isSuccess) {
                     saveStatusMessage = result.getOrNull()
                     clearFields()
                     showAddDialog = false
                     loadExpenses()
 
-                    // Auto-ocultar mensaje después de 3 segundos
+
                     viewModelScope.launch {
                         kotlinx.coroutines.delay(3000)
                         saveStatusMessage = null
